@@ -65,14 +65,16 @@ class QuadraticPlacer:
                 self.padlist[net_number] = [x_coord, y_coord]
 
         # Final coordinates
-        self.x = np.zeros(self.num_gates)
-        self.y = np.zeros(self.num_gates)
+        self.x = np.zeros((self.num_gates, 2))
+        self.x[:,0] = np.array([n for n in range(self.num_gates)])
+        self.y = np.zeros((self.num_gates, 2))
+        self.y[:,0] = np.array([n for n in range(self.num_gates)])
 
     def output(self, outfile):
         """Output the quadratic placement coordinates"""
         with open(outfile, 'w') as file:
             for i in range(self.num_gates):
-                file.write(f"{i + 1} {self.x[i]} {self.y[i]}\n")
+                file.write(f"{i + 1} {self.x[i,1]} {self.y[i,1]}\n")
 
     # Helper Functions
     def init_placement(self):
@@ -113,13 +115,26 @@ class QuadraticPlacer:
                     break
 
         # Compute x and y placement coordinates
-        self.x = la.solve(a_matrix, bx)
-        self.y = la.solve(a_matrix, by)
+        self.x[:,1] = la.solve(a_matrix, bx)
+        self.y[:,1] = la.solve(a_matrix, by)
+
+    def vert_assignment(self):
+        """Complete vertical gate assignment, sorting 
+        X coordinates then Y coordinates"""
+
+        # Calculate absolute sort vector for x,y coordinates
+        abs_vector = np.zeros((self.num_gates, 2))
+        abs_vector[:,0] = np.array([n for n in range(self.num_gates)])
+        abs_vector[:,1] = 100000 * self.x[:,1] + self.y[:,1]
+
+        sorted_vector = abs_vector[abs_vector[:, 1].argsort()]
+        print(sorted_vector)
 
     def run(self):
         """Run Quadratic Placement Algorithm"""
         print("Running Quadratic Placer...")
         self.init_placement()
+        self.vert_assignment()
 
 if __name__ == "__main__":
     # Input and Output file arguments
@@ -131,6 +146,3 @@ if __name__ == "__main__":
     placer = QuadraticPlacer(args.infile)
     placer.run()
     placer.output(args.outfile)
-
-
-    
