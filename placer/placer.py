@@ -73,8 +73,17 @@ class QuadraticPlacer:
     def output(self, outfile):
         """Output the quadratic placement coordinates"""
         with open(outfile, 'w') as file:
-            for i in range(self.num_gates):
-                file.write(f"{i + 1} {self.x[i,1]} {self.y[i,1]}\n")
+            for i in range(self.left_num_gates):
+                index = int(self.left_x[i,0] + 1)
+                x = '{:.8f}'.format(self.left_x[i,1])
+                y = '{:.8f}'.format(self.left_y[i,1])
+                file.write(f"{index} {x} {y}\n")
+
+            for i in range(self.right_num_gates):
+                index = int(self.right_x[i,0] + 1)
+                x = '{:.8f}'.format(self.right_x[i,1])
+                y = '{:.8f}'.format(self.right_y[i,1])
+                file.write(f"{index} {x} {y}\n")
 
     # Helper Functions
     def init_placement(self):
@@ -140,6 +149,7 @@ class QuadraticPlacer:
         and solve quadratice placer"""
 
         # Determine all possible nets
+        self.left_gates = sorted(self.left_gates)
         self.left_nets = np.array([])
         for gate in self.left_gates:
             self.left_nets = np.union1d(self.left_nets, self.gatelist[gate])
@@ -151,7 +161,9 @@ class QuadraticPlacer:
             gate_list = self.netlist[net]
             for row in gate_list:
                 for column in gate_list:
-                    if (row == column or row not in self.left_gates or column not in self.left_gates):
+                    if (row not in self.left_gates):
+                        break
+                    elif (row == column or column not in self.left_gates):
                         continue
                     else:
                         c_matrix[self.left_gates.index(row), self.left_gates.index(column)] = 1
@@ -197,12 +209,70 @@ class QuadraticPlacer:
         self.left_y[:,0] = self.left_gates
         self.left_y[:,1] = la.solve(a_matrix, by)
 
-        print(self.left_x)
-        print(self.left_y)
-
     def vert_contain_right(self):
         """Complete containment problem on left assigned gates
         and solve quadratice placer"""
+
+        # Determine all possible nets
+        self.right_gates = sorted(self.right_gates)
+        self.right_nets = np.array([])
+        for gate in self.right_gates:
+            self.right_nets = np.union1d(self.right_nets, self.gatelist[gate])
+        self.right_nets = list(self.right_nets)
+
+        # Construct C matrix
+        c_matrix = np.zeros((self.right_num_gates, self.right_num_gates))
+        for net in self.right_nets:
+            gate_list = self.netlist[net]
+            for row in gate_list:
+                for column in gate_list:
+                    if (row not in self.right_gates):
+                        break
+                    elif (row == column or column not in self.right_gates):
+                        continue
+                    else:
+                        c_matrix[self.right_gates.index(row), self.right_gates.index(column)] = 1
+
+        # # Construct A matrix
+        a_matrix = np.where(c_matrix != 0, -c_matrix, 0)
+        for gate in self.right_gates:
+            # Check pads
+            pad_flag = 0
+            net_list = self.gatelist[gate]
+            for net in net_list:
+                if net in self.padlist:
+                    pad_flag = 1
+
+            i = self.right_gates.index(gate)
+            a_matrix[i, i] = sum(c_matrix[i]) + pad_flag
+
+        # Determine new padlist
+        self.right_padlist = {}
+        for net in self.right_nets:
+            if net in self.padlist and net not in self.right_padlist:
+                self.right_padlist[net] = self.padlist[net]
+                if (self.right_padlist[net][0] < 50):
+                    self.right_padlist[net][0] = 50
+
+        # Construct bx and by vectors
+        bx = np.zeros(self.right_num_gates)
+        by = np.zeros(self.right_num_gates)
+        for gate in self.right_gates:
+            i = self.right_gates.index(gate)
+            net_list = self.gatelist[gate]
+            for net in net_list:
+                if net in self.right_padlist:
+                    bx[i] = self.right_padlist[net][0]
+                    by[i] = self.right_padlist[net][1]
+                    break
+
+        # Compute x and y placement coordinates
+        self.right_x = np.zeros((self.right_num_gates, 2))
+        self.right_x[:,0] = self.right_gates
+        self.right_x[:,1] = la.solve(a_matrix, bx)
+        self.right_y = np.zeros((self.right_num_gates, 2))
+        self.right_y[:,0] = self.right_gates
+        self.right_y[:,1] = la.solve(a_matrix, by)
 
     def run(self):
         """Run Quadratic Placement Algorithm"""
