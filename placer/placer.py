@@ -142,14 +142,13 @@ class QuadraticPlacer:
         self.left_gates = list(sorted_vector[:midpoint][:,0])
         self.left_num_gates = len(self.left_gates)
         self.right_gates = list(sorted_vector[midpoint:][:,0])
-        self.right_num_gates = len(self.left_gates)
+        self.right_num_gates = len(self.right_gates)
 
     def vert_contain_left(self):
         """Complete containment problem on left assigned gates
         and solve quadratice placer"""
 
         # Determine all possible nets
-        self.left_gates = sorted(self.left_gates)
         self.left_nets = np.array([])
         for gate in self.left_gates:
             self.left_nets = np.union1d(self.left_nets, self.gatelist[gate])
@@ -168,19 +167,6 @@ class QuadraticPlacer:
                     else:
                         c_matrix[self.left_gates.index(row), self.left_gates.index(column)] = 1
 
-        # # Construct A matrix
-        a_matrix = np.where(c_matrix != 0, -c_matrix, 0)
-        for gate in self.left_gates:
-            # Check pads
-            pad_flag = 0
-            net_list = self.gatelist[gate]
-            for net in net_list:
-                if net in self.padlist:
-                    pad_flag = 1
-
-            i = self.left_gates.index(gate)
-            a_matrix[i, i] = sum(c_matrix[i]) + pad_flag
-
         # Determine new padlist
         self.left_padlist = {}
         for net in self.left_nets:
@@ -188,6 +174,19 @@ class QuadraticPlacer:
                 self.left_padlist[net] = self.padlist[net]
                 if (self.left_padlist[net][0] > 50):
                     self.left_padlist[net][0] = 50
+
+        # Construct A matrix
+        a_matrix = np.where(c_matrix != 0, -c_matrix, 0)
+        for gate in self.left_gates:
+            # Check pads
+            pad_flag = 0
+            net_list = self.gatelist[gate]
+            for net in net_list:
+                if net in self.left_padlist:
+                    pad_flag = 1
+
+            i = self.left_gates.index(gate)
+            a_matrix[i, i] = sum(c_matrix[i]) + pad_flag
 
         # Construct bx and by vectors
         bx = np.zeros(self.left_num_gates)
@@ -214,7 +213,6 @@ class QuadraticPlacer:
         and solve quadratice placer"""
 
         # Determine all possible nets
-        self.right_gates = sorted(self.right_gates)
         self.right_nets = np.array([])
         for gate in self.right_gates:
             self.right_nets = np.union1d(self.right_nets, self.gatelist[gate])
@@ -233,19 +231,6 @@ class QuadraticPlacer:
                     else:
                         c_matrix[self.right_gates.index(row), self.right_gates.index(column)] = 1
 
-        # # Construct A matrix
-        a_matrix = np.where(c_matrix != 0, -c_matrix, 0)
-        for gate in self.right_gates:
-            # Check pads
-            pad_flag = 0
-            net_list = self.gatelist[gate]
-            for net in net_list:
-                if net in self.padlist:
-                    pad_flag = 1
-
-            i = self.right_gates.index(gate)
-            a_matrix[i, i] = sum(c_matrix[i]) + pad_flag
-
         # Determine new padlist
         self.right_padlist = {}
         for net in self.right_nets:
@@ -253,6 +238,19 @@ class QuadraticPlacer:
                 self.right_padlist[net] = self.padlist[net]
                 if (self.right_padlist[net][0] < 50):
                     self.right_padlist[net][0] = 50
+
+        # Construct A matrix
+        a_matrix = np.where(c_matrix != 0, -c_matrix, 0)
+        for gate in self.right_gates:
+            # Check pads
+            pad_flag = 0
+            net_list = self.gatelist[gate]
+            for net in net_list:
+                if net in self.right_padlist:
+                    pad_flag = 1
+
+            i = self.right_gates.index(gate)
+            a_matrix[i, i] = sum(c_matrix[i]) + pad_flag
 
         # Construct bx and by vectors
         bx = np.zeros(self.right_num_gates)
