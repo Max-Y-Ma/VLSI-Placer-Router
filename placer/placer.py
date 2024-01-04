@@ -126,15 +126,91 @@ class QuadraticPlacer:
         abs_vector = np.zeros((self.num_gates, 2))
         abs_vector[:,0] = np.array([n for n in range(self.num_gates)])
         abs_vector[:,1] = 100000 * self.x[:,1] + self.y[:,1]
-
         sorted_vector = abs_vector[abs_vector[:, 1].argsort()]
-        print(sorted_vector)
+
+        # Divide gates to compute assignment
+        midpoint = sorted_vector.shape[0] // 2
+        self.left_gates = list(sorted_vector[:midpoint][:,0])
+        self.left_num_gates = len(self.left_gates)
+        self.right_gates = list(sorted_vector[midpoint:][:,0])
+        self.right_num_gates = len(self.left_gates)
+
+    def vert_contain_left(self):
+        """Complete containment problem on left assigned gates
+        and solve quadratice placer"""
+
+        # Determine all possible nets
+        self.left_nets = np.array([])
+        for gate in self.left_gates:
+            self.left_nets = np.union1d(self.left_nets, self.gatelist[gate])
+        self.left_nets = list(self.left_nets)
+
+        # Construct C matrix
+        c_matrix = np.zeros((self.left_num_gates, self.left_num_gates))
+        for net in self.left_nets:
+            gate_list = self.netlist[net]
+            for row in gate_list:
+                for column in gate_list:
+                    if (row == column or row not in self.left_gates or column not in self.left_gates):
+                        continue
+                    else:
+                        c_matrix[self.left_gates.index(row), self.left_gates.index(column)] = 1
+
+        # # Construct A matrix
+        a_matrix = np.where(c_matrix != 0, -c_matrix, 0)
+        for gate in self.left_gates:
+            # Check pads
+            pad_flag = 0
+            net_list = self.gatelist[gate]
+            for net in net_list:
+                if net in self.padlist:
+                    pad_flag = 1
+
+            i = self.left_gates.index(gate)
+            a_matrix[i, i] = sum(c_matrix[i]) + pad_flag
+
+        # Determine new padlist
+        self.left_padlist = {}
+        for net in self.left_nets:
+            if net in self.padlist and net not in self.left_padlist:
+                self.left_padlist[net] = self.padlist[net]
+                if (self.left_padlist[net][0] > 50):
+                    self.left_padlist[net][0] = 50
+
+        # Construct bx and by vectors
+        bx = np.zeros(self.left_num_gates)
+        by = np.zeros(self.left_num_gates)
+        for gate in self.left_gates:
+            i = self.left_gates.index(gate)
+            net_list = self.gatelist[gate]
+            for net in net_list:
+                if net in self.left_padlist:
+                    bx[i] = self.left_padlist[net][0]
+                    by[i] = self.left_padlist[net][1]
+                    break
+
+        # Compute x and y placement coordinates
+        self.left_x = np.zeros((self.left_num_gates, 2))
+        self.left_x[:,0] = self.left_gates
+        self.left_x[:,1] = la.solve(a_matrix, bx)
+        self.left_y = np.zeros((self.left_num_gates, 2))
+        self.left_y[:,0] = self.left_gates
+        self.left_y[:,1] = la.solve(a_matrix, by)
+
+        print(self.left_x)
+        print(self.left_y)
+
+    def vert_contain_right(self):
+        """Complete containment problem on left assigned gates
+        and solve quadratice placer"""
 
     def run(self):
         """Run Quadratic Placement Algorithm"""
         print("Running Quadratic Placer...")
         self.init_placement()
         self.vert_assignment()
+        self.vert_contain_left()
+        self.vert_contain_right()
 
 if __name__ == "__main__":
     # Input and Output file arguments
