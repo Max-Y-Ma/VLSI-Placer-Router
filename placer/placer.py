@@ -93,6 +93,7 @@ class QuadraticPlacer:
         # Construct C matrix
         c_matrix = np.zeros((self.num_gates, self.num_gates))
         for gate_list in self.netlist.values():
+            # Add gate connections to C matrix
             for row in gate_list:
                 for column in gate_list:
                     if (row == column):
@@ -103,7 +104,7 @@ class QuadraticPlacer:
         # Construct A matrix
         a_matrix = np.where(c_matrix != 0, -c_matrix, 0)
         for i in range(self.num_gates):
-            # Check pads
+            # Check pads and update diagonal
             pad_flag = 0
             net_list = self.gatelist[i]
             for net in net_list:
@@ -131,11 +132,11 @@ class QuadraticPlacer:
         """Complete vertical gate assignment, sorting 
         X coordinates then Y coordinates"""
 
-        # Calculate absolute sort vector for x,y coordinates
+        # Calculate absolute (100000 * x + y) sort vector for x,y coordinates
         abs_vector = np.zeros((self.num_gates, 2))
         abs_vector[:,0] = np.array([n for n in range(self.num_gates)])
         abs_vector[:,1] = 100000 * self.x[:,1] + self.y[:,1]
-        sorted_vector = abs_vector[abs_vector[:, 1].argsort()]
+        sorted_vector = abs_vector[abs_vector[:,1].argsort()]
 
         # Divide gates to compute assignment
         midpoint = sorted_vector.shape[0] // 2
@@ -160,9 +161,9 @@ class QuadraticPlacer:
             gate_list = self.netlist[net]
             for row in gate_list:
                 for column in gate_list:
-                    if (row not in self.left_gates):
+                    if row not in self.left_gates:
                         break
-                    elif (row == column or column not in self.left_gates):
+                    elif row == column or column not in self.left_gates:
                         continue
                     else:
                         c_matrix[self.left_gates.index(row), self.left_gates.index(column)] = 1
@@ -172,7 +173,7 @@ class QuadraticPlacer:
         for net in self.left_nets:
             if net in self.padlist and net not in self.left_padlist:
                 self.left_padlist[net] = self.padlist[net]
-                if (self.left_padlist[net][0] > 50):
+                if self.left_padlist[net][0] > 50:
                     self.left_padlist[net][0] = 50
 
         # Construct A matrix
@@ -224,9 +225,9 @@ class QuadraticPlacer:
             gate_list = self.netlist[net]
             for row in gate_list:
                 for column in gate_list:
-                    if (row not in self.right_gates):
+                    if row not in self.right_gates:
                         break
-                    elif (row == column or column not in self.right_gates):
+                    elif row == column or column not in self.right_gates:
                         continue
                     else:
                         c_matrix[self.right_gates.index(row), self.right_gates.index(column)] = 1
@@ -236,7 +237,7 @@ class QuadraticPlacer:
         for net in self.right_nets:
             if net in self.padlist and net not in self.right_padlist:
                 self.right_padlist[net] = self.padlist[net]
-                if (self.right_padlist[net][0] < 50):
+                if self.right_padlist[net][0] < 50:
                     self.right_padlist[net][0] = 50
 
         # Construct A matrix
