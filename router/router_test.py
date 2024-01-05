@@ -78,15 +78,15 @@ class RouterTestModule(unittest.TestCase):
 
         for i in range(num_basic_test):
             nc2_coord = [random.randint(0, 2**16 - 1), random.randint(0, 2**16 - 1),
-                                   random.randint(0, 2**16 - 1), random.randint(0, 2**16 - 1)]
-            nc2_data = [random.randint(0, 2**6 - 1), random.randint(0, 1), random.randint(0, 1)]
+                         random.randint(0, 2**16 - 1), random.randint(0, 2**16 - 1)]
+            nc2_data = [random.randint(0, 2**6 - 1), random.randint(1, 2), random.randint(1, 2)]
             netcell2 = NetCell(instring=f" {nc2_data[0]}   {nc2_data[2]}  {nc2_coord[2]} {nc2_coord[3]}   {nc2_data[1]}  {nc2_coord[0]} {nc2_coord[1]}")
             self.assertEqual(netcell2.get_x2(), nc2_coord[0])
             self.assertEqual(netcell2.get_y2(), nc2_coord[1])
             self.assertEqual(netcell2.get_x1(), nc2_coord[2])
             self.assertEqual(netcell2.get_y1(), nc2_coord[3])
             self.assertEqual(netcell2.get_id(), nc2_data[0])
-            self.assertEqual(netcell2.get_layer2(), nc2_data[1])
-            self.assertEqual(netcell2.get_layer1(), nc2_data[2])
+            self.assertEqual(netcell2.get_layer2(), nc2_data[1] - 1)
+            self.assertEqual(netcell2.get_layer1(), nc2_data[2] - 1)
 if __name__ == '__main__':
     unittest.main()

@@ -74,10 +74,10 @@ class NetCell:
         if instring is not None:
             self.list = instring.split()
             self.set_id(int(self.list[0]))
-            self.set_layer1(int(self.list[1]))
+            self.set_layer1(int(self.list[1]) - 1)  # Convert to 0-indexed
             self.set_x1(int(self.list[2]))
             self.set_y1(int(self.list[3]))
-            self.set_layer2(int(self.list[4]))
+            self.set_layer2(int(self.list[4]) - 1)  # Convert to 0-indexed
             self.set_x2(int(self.list[5]))
             self.set_y2(int(self.list[6]))
 
@@ -258,19 +258,19 @@ class MazeRouter:
         unreached_neighbors = []
         
         # Check left neighbor
-        if x > 0 and self.grid[layer][y][x-1].get_reached() == 0:
+        if x > 0 and self.grid[layer][y][x-1].get_reached() == 0 and self.grid[layer][y][x-1].get_cost() != 4095:
             unreached_neighbors.append([self.grid[layer][y][x-1], (layer, y, x-1), PredTag.E.value])
         
         # Check right neighbor
-        if x < self.grid_x - 1 and self.grid[layer][y][x+1].get_reached() == 0:
+        if x < self.grid_x - 1 and self.grid[layer][y][x+1].get_reached() == 0 and self.grid[layer][y][x+1].get_cost() != 4095:
             unreached_neighbors.append([self.grid[layer][y][x+1], (layer, y, x+1), PredTag.W.value])
 
         # Check top neighbor
-        if y > 0 and self.grid[layer][y-1][x].get_reached() == 0:
+        if y > 0 and self.grid[layer][y-1][x].get_reached() == 0 and self.grid[layer][y-1][x].get_cost() != 4095:
             unreached_neighbors.append([self.grid[layer][y-1][x], (layer, y-1, x), PredTag.S.value])
 
         # Check bottom neighbor
-        if y < self.grid_y - 1 and self.grid[layer][y+1][x].get_reached() == 0:
+        if y < self.grid_y - 1 and self.grid[layer][y+1][x].get_reached() == 0 and self.grid[layer][y+1][x].get_cost() != 4095:
             unreached_neighbors.append([self.grid[layer][y+1][x], (layer, y+1, x), PredTag.N.value])
 
         # # Check above neighbor
@@ -420,7 +420,7 @@ class MazeRouter:
                 # Output routed path
                 if len(route) != 0:
                     for cell in route[::-1]:
-                        file.write(f"{cell[0]} {cell[1]} {cell[2]}\n")
+                        file.write(f"{cell[0] + 1} {cell[1]} {cell[2]}\n")  # Convert layer to 1-indexed
 
                 # Output end number
                 file.write("0\n")
