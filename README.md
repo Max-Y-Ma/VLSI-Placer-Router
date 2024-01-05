@@ -16,4 +16,11 @@ Source Code for simple VLSI Quadratic Placer and Router.
 - Benchmarks for this module are run using a bash script `./run_placer.sh`
 
 # VLSI Router
+- This python module `MazeRouter` implements a router that supports the following:
+    - 2-point nets
+    - Non-unit cost
+    - Bend pennalty
+    - 2-layers w/ vias.
 
+## Usage
+- Benchmarks for this module are run using a bash script `./run_router.sh`
