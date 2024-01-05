@@ -32,7 +32,7 @@ class GridCell:
     """
     Single Cell in Routing Grid (16-bit):
     ----------------------------------------------------
-    Cost (12-bit) | Predecessor (3-bit) | Reached (1-bit)
+    Cost (9-bit) | Predecessor (3-bit) | Reached (4-bit)
     ----------------------------------------------------
     """
     def __init__(self, data=0):
@@ -40,22 +40,22 @@ class GridCell:
     
     # Getters and Setters
     def get_cost(self):
-        return (self.data & 0xFFF0) >> 4
+        return (self.data & 0xFF80) >> 7
     
     def get_pred(self):
-        return (self.data & 0x000E) >> 1
+        return (self.data & 0x0070) >> 4
 
-    def get_reached(self):
-        return self.data & 0x0001
+    def get_reached(self, direction):
+        return ((self.data & 0x000F) >> direction) & 0x0001
 
     def set_cost(self, cost):
-        self.data = ((cost << 4) & 0xFFF0) | (self.data & 0x000F)
+        self.data = ((cost << 7) & 0xFF80) | (self.data & 0x007F)
 
     def set_pred(self, pred):
-        self.data = ((pred << 1) & 0x000E) | (self.data & 0xFFF1)
+        self.data = ((pred << 4) & 0x0070) | (self.data & 0xFF8F)
 
-    def set_reached(self, reached):
-        self.data = (reached & 0x0001) | (self.data & 0xFFFE)
+    def set_reached(self, reached, direction):
+        self.data = (reached << direction) | (self.data & ~(0x0001 << direction))
 
 class NetCell:
     """
@@ -239,6 +239,7 @@ class MazeRouter:
         
         # Wavefront (heap/priority queue) data structure variables
         self.wavefront = WaveFront()
+        self.min_cost = {}
 
         # Parse gridfile and netfile
         self.parse_grid(gridfile)
@@ -246,10 +247,12 @@ class MazeRouter:
 
     def cleanup(self):
         """Cleanup grid after routing a net"""
+        self.min_cost = {}
         for y in range(self.grid_y):
             for x in range(self.grid_x):
-                self.grid[0][y][x].set_reached(0)
-                self.grid[1][y][x].set_reached(0)
+                for i in range(4):
+                    self.grid[0][y][x].set_reached(0, i)
+                    self.grid[1][y][x].set_reached(0, i)
                 self.grid[0][y][x].set_pred(0)
                 self.grid[1][y][x].set_pred(0)
 
@@ -258,19 +261,19 @@ class MazeRouter:
         unreached_neighbors = []
         
         # Check left neighbor
-        if x > 0 and self.grid[layer][y][x-1].get_reached() == 0 and self.grid[layer][y][x-1].get_cost() != 4095:
+        if x > 0 and self.grid[layer][y][x-1].get_reached(PredTag.E.value - 1) == 0 and self.grid[layer][y][x-1].get_cost() != 4095:
             unreached_neighbors.append([self.grid[layer][y][x-1], (layer, y, x-1), PredTag.E.value])
         
         # Check right neighbor
-        if x < self.grid_x - 1 and self.grid[layer][y][x+1].get_reached() == 0 and self.grid[layer][y][x+1].get_cost() != 4095:
+        if x < self.grid_x - 1 and self.grid[layer][y][x+1].get_reached(PredTag.W.value - 1) == 0 and self.grid[layer][y][x+1].get_cost() != 4095:
             unreached_neighbors.append([self.grid[layer][y][x+1], (layer, y, x+1), PredTag.W.value])
 
         # Check top neighbor
-        if y > 0 and self.grid[layer][y-1][x].get_reached() == 0 and self.grid[layer][y-1][x].get_cost() != 4095:
+        if y > 0 and self.grid[layer][y-1][x].get_reached(PredTag.S.value - 1) == 0 and self.grid[layer][y-1][x].get_cost() != 4095:
             unreached_neighbors.append([self.grid[layer][y-1][x], (layer, y-1, x), PredTag.S.value])
 
         # Check bottom neighbor
-        if y < self.grid_y - 1 and self.grid[layer][y+1][x].get_reached() == 0 and self.grid[layer][y+1][x].get_cost() != 4095:
+        if y < self.grid_y - 1 and self.grid[layer][y+1][x].get_reached(PredTag.N.value - 1) == 0 and self.grid[layer][y+1][x].get_cost() != 4095:
             unreached_neighbors.append([self.grid[layer][y+1][x], (layer, y+1, x), PredTag.N.value])
 
         # # Check above neighbor
@@ -344,7 +347,8 @@ class MazeRouter:
         # Initialize wavefront to source cell
         self.wavefront.clear()
         self.wavefront.push(source)
-        self.grid[source.get_layer(), source.get_y(), source.get_x()].set_reached(1)
+        for i in range(4):
+            self.grid[source.get_layer(), source.get_y(), source.get_x()].set_reached(1, i)
 
         # Maze routing algorithm
         path = []
@@ -374,21 +378,29 @@ class MazeRouter:
                 neighbor_cell = neighbor[0]
                 location = neighbor[1]
                 predecessor = neighbor[2]
-                
-                # Mark cell as reached
-                neighbor_cell.set_reached(1)
-
-                # Compute new pathcost
-                pathcost = current_cell.get_pathcost() + neighbor_cell.get_cost()
-
-                # Mark predecessor direction
-                neighbor_cell.set_pred(predecessor)
-
-                # Add neighbor to wavefront
                 next_layer = location[0]
                 next_y = location[1]
                 next_x = location[2]
+                
+                # Mark cell as reached
+                neighbor_cell.set_reached(1, predecessor - 1)
 
+                # Compute new pathcost
+                pathcost = current_cell.get_pathcost() + neighbor_cell.get_cost()
+                hash = next_y * self.grid_x + next_x
+                if (hash not in self.min_cost):
+                    self.min_cost[hash] = pathcost
+
+                # Factor in bend penalty
+                # if (current_cell.get_pred() != predecessor):
+                #     pathcost += self.bend_penalty
+
+                # Mark predecessor direction if minimum pathcost
+                if (pathcost <= self.min_cost[hash]):
+                    self.min_cost[hash] = pathcost
+                    neighbor_cell.set_pred(predecessor)
+
+                # Add neighbor to wavefront
                 next_cell = WaveCell()
                 next_cell.set_x(next_x)
                 next_cell.set_y(next_y)

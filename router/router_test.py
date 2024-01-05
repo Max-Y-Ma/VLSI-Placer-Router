@@ -10,17 +10,20 @@ class RouterTestModule(unittest.TestCase):
         gridcell = GridCell()
         self.assertEqual(gridcell.get_cost(), 0)
         self.assertEqual(gridcell.get_pred(), 0)
-        self.assertEqual(gridcell.get_reached(), 0)
+        for i in range(4):
+            self.assertEqual(gridcell.get_reached(i), 0)
 
         for i in range(num_basic_test):
-            gc_data = [random.randint(0, 2**12 - 1), random.randint(1, 6), random.randint(0, 1)]
+            gc_data = [random.randint(0, 2**9 - 1), random.randint(1, 6), random.randint(0, 1)]
             gridcell.set_cost(gc_data[0])
             gridcell.set_pred(gc_data[1])
-            gridcell.set_reached(gc_data[2])
+            for i in range(4):
+                gridcell.set_reached(gc_data[2], i)
 
             self.assertEqual(gridcell.get_cost(), gc_data[0])
             self.assertEqual(gridcell.get_pred(), gc_data[1])
-            self.assertEqual(gridcell.get_reached(), gc_data[2])
+            for i in range(4):
+                self.assertEqual(gridcell.get_reached(i), gc_data[2])
 
         # Test Getter and Setter for WaveCell
         wavecell = WaveCell()
