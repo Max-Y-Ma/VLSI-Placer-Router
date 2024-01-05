@@ -1,10 +1,10 @@
-from router import GridCell, WaveCell, PredTag
+from router import GridCell, WaveCell
 import unittest
 import random
 
 num_basic_test = 1000
 
-class TestMyModule(unittest.TestCase):
+class RouterTestModule(unittest.TestCase):
     def test_cell_getter_setter(self):
         # Test Getter and Setter for GridCell
         gridcell = GridCell()
@@ -43,7 +43,6 @@ class TestMyModule(unittest.TestCase):
             self.assertEqual(wavecell.get_pathcost(), wavecell_test[2])
             self.assertEqual(wavecell.get_pred(), wavecell_test[3])
             self.assertEqual(wavecell.get_layer(), wavecell_test[4])
-
 
 if __name__ == '__main__':
     unittest.main()
