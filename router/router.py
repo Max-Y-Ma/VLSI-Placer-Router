@@ -292,6 +292,7 @@ class MazeRouter:
         path = []
         while(True):
             # Add cell to path
+            self.grid[cell_layer][cell_y][cell_x].set_cost(-1)
             path.append((cell_layer, cell_x, cell_y))
 
             # Check for source, append source

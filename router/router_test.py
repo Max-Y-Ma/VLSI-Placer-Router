@@ -88,5 +88,6 @@ class RouterTestModule(unittest.TestCase):
             self.assertEqual(netcell2.get_id(), nc2_data[0])
             self.assertEqual(netcell2.get_layer2(), nc2_data[1] - 1)
             self.assertEqual(netcell2.get_layer1(), nc2_data[2] - 1)
+
 if __name__ == '__main__':
     unittest.main()
