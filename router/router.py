@@ -11,6 +11,23 @@ class PredTag(Enum):
     U = 5
     D = 6
 
+class WaveFront:
+    """Wrapper around heapq data structure"""
+    def __init__(self):
+        self.heap = []
+
+    def push(self, wavecell):
+        heapq.heappush(self.heap, wavecell)
+
+    def pop(self):
+        return heapq.heappop(self.heap)
+
+    def empty(self):
+        return len(self.heap) == 0
+
+    def clear(self):
+        self.heap.clear()
+
 class GridCell:
     """
     Single Cell in Routing Grid (16-bit):
@@ -196,7 +213,13 @@ class MazeRouter:
         """Parse netfile and initialize net data structure"""
         with open(netfile, 'r') as file:
             net_header = file.readline().split()
-            self.nets = net_header[0]
+            self.num_nets = int(net_header[0])
+
+            # Initialize netlist
+            self.nets = np.array([NetCell() for _ in range(self.num_nets)])
+
+            for i in range(self.num_nets):
+                self.nets[i] = NetCell(instring=file.readline())
 
     def __init__(self, gridfile, netfile):
         # Routing grid data structure variables
@@ -205,22 +228,56 @@ class MazeRouter:
         self.grid_layers = 2
         self.bend_penalty = 0
         self.via_penalty = 0
-
         self.grid = None
+        self.routes = []
+
+        self.num_nets = 0
         self.nets = None
         
         # Wavefront (heap/priority queue) data structure variables
-        self.wavefront = []
+        self.wavefront = WaveFront()
 
         # Parse gridfile and netfile
         self.parse_grid(gridfile)
         self.parse_net(netfile)
 
+    def route(self, net):
+        """
+        Routes given net and returns the backtraced path as a list of WaveCells. 
+        If no path exists, an empty list is returned.
+        """
+
+        # Initialize wavefront to source cell
+        self.wavefront.clear()
+        self.wavefront.push(WaveCell())
+
+        return [WaveCell(), WaveCell(), WaveCell()]
+
     def run(self):
         """Complete maze routing for each netlist"""
+        # Route each net in netlist
+        for net in self.nets:
+            maze_route = self.route(net)
+            self.routes.append(maze_route)
 
     def output(self, outfile):
         """Output final maze routing"""
+        with open(outfile, 'w') as file:
+            # Output total number of nets
+            file.write(f"{self.num_nets}\n")
+
+            net_number = 1
+            for route in self.routes:
+                # Output net number
+                file.write(f"{net_number}\n")
+
+                # Output routed path
+                if len(route) != 0:
+                    for cell in route:
+                        file.write(f"{cell.get_layer()} {cell.get_x()} {cell.get_y()}\n")
+
+                # Output end number
+                file.write("0\n")
 
 if __name__ == "__main__":
     # Input and Output file arguments
