@@ -133,6 +133,9 @@ class WaveCell:
     """
     def __init__(self, data=0):
         self.data = data
+
+    def __lt__(self, other):
+        return self.get_pathcost() < other.get_pathcost()
     
     # Getters and Setters
     def get_x(self):
@@ -228,11 +231,11 @@ class MazeRouter:
         self.grid_layers = 2
         self.bend_penalty = 0
         self.via_penalty = 0
-        self.grid = None
+        self.grid = np.array([[[]]])
         self.routes = []
 
         self.num_nets = 0
-        self.nets = None
+        self.nets = np.array([])
         
         # Wavefront (heap/priority queue) data structure variables
         self.wavefront = WaveFront()
@@ -241,17 +244,160 @@ class MazeRouter:
         self.parse_grid(gridfile)
         self.parse_net(netfile)
 
+    def cleanup(self):
+        """Cleanup grid after routing a net"""
+        for y in range(self.grid_y):
+            for x in range(self.grid_x):
+                self.grid[0][y][x].set_reached(0)
+                self.grid[1][y][x].set_reached(0)
+                self.grid[0][y][x].set_pred(0)
+                self.grid[1][y][x].set_pred(0)
+
+    def get_cell_neighbors(self, x, y, layer):
+        """Get unreached neighbors of cell"""
+        unreached_neighbors = []
+        
+        # Check left neighbor
+        if x > 0 and self.grid[layer][y][x-1].get_reached() == 0:
+            unreached_neighbors.append([self.grid[layer][y][x-1], (layer, y, x-1), PredTag.E.value])
+        
+        # Check right neighbor
+        if x < self.grid_x - 1 and self.grid[layer][y][x+1].get_reached() == 0:
+            unreached_neighbors.append([self.grid[layer][y][x+1], (layer, y, x+1), PredTag.W.value])
+
+        # Check top neighbor
+        if y > 0 and self.grid[layer][y-1][x].get_reached() == 0:
+            unreached_neighbors.append([self.grid[layer][y-1][x], (layer, y-1, x), PredTag.S.value])
+
+        # Check bottom neighbor
+        if y < self.grid_y - 1 and self.grid[layer][y+1][x].get_reached() == 0:
+            unreached_neighbors.append([self.grid[layer][y+1][x], (layer, y+1, x), PredTag.N.value])
+
+        # # Check above neighbor
+        # if layer == 0 and self.grid[1][y][x].get_reached() == 0:
+        #     unreached_neighbors.append((x, y, 1))
+
+        # # Check below neighbor
+        # if layer == 1 and self.grid[0][y][x].get_reached() == 0:
+        #     unreached_neighbors.append((x, y, 0))
+        return unreached_neighbors
+
+    def backtrace_route(self, source, cell_x, cell_y, cell_layer):
+        """Backtrace route from target to source"""
+
+        # Initialize current cell to target
+        current_cell = GridCell()
+        current_cell.set_pred(self.grid[cell_layer, cell_y, cell_x].get_pred())
+
+        path = []
+        while(True):
+            # Add cell to path
+            path.append((cell_layer, cell_x, cell_y))
+
+            # Check for source, append source
+            if (cell_x == source.get_x() and cell_y == source.get_y() and cell_layer == source.get_layer()):
+                break
+
+            # Get predecessor direction
+            pred = current_cell.get_pred()
+
+            # Get predecessor cell
+            if pred == PredTag.N.value:
+                current_cell = self.grid[cell_layer][cell_y-1][cell_x]
+                cell_y -= 1
+            elif pred == PredTag.S.value:
+                current_cell = self.grid[cell_layer][cell_y+1][cell_x]
+                cell_y += 1
+            elif pred == PredTag.E.value:
+                current_cell = self.grid[cell_layer][cell_y][cell_x+1]
+                cell_x += 1
+            elif pred == PredTag.W.value:
+                current_cell = self.grid[cell_layer][cell_y][cell_x-1]
+                cell_x -= 1
+            # elif pred == PredTag.U.value:
+            #     current_cell = self.grid[0][current_cell.get_y()][current_cell.get_x()]
+            # elif pred == PredTag.D.value:
+            #     current_cell = self.grid[1][current_cell.get_y()][current_cell.get_x()]
+            else:
+                break
+
+        return path
+
     def route(self, net):
         """
         Routes given net and returns the backtraced path as a list of WaveCells. 
         If no path exists, an empty list is returned.
         """
 
+        # Create source and target cells
+        source = WaveCell()
+        source.set_x(net.get_x1())
+        source.set_y(net.get_y1())
+        source.set_layer(net.get_layer1())
+
+        target = WaveCell()
+        target.set_x(net.get_x2())
+        target.set_y(net.get_y2())
+        target.set_layer(net.get_layer2())
+        
         # Initialize wavefront to source cell
         self.wavefront.clear()
-        self.wavefront.push(WaveCell())
+        self.wavefront.push(source)
+        self.grid[source.get_layer(), source.get_y(), source.get_x()].set_reached(1)
 
-        return [WaveCell(), WaveCell(), WaveCell()]
+        # Maze routing algorithm
+        path = []
+        while(True):
+            # No path was found, target could not be reached
+            if self.wavefront.empty():
+                break
+
+            # Grab lowest cost cell from wavefront
+            current_cell = self.wavefront.pop()
+            cell_x = current_cell.get_x()
+            cell_y = current_cell.get_y()
+            cell_layer = current_cell.get_layer()
+
+            # Check for target
+            if (cell_x == target.get_x() and cell_y == target.get_y() and cell_layer == target.get_layer()):
+                # Target reached, backtrace path
+                path = self.backtrace_route(source, cell_x, cell_y, cell_layer)
+
+                # Cleanup
+                self.cleanup()
+                break
+
+            # Complete expansion, checking neighbor cells
+            unreached_neighbors = self.get_cell_neighbors(cell_x, cell_y, cell_layer)
+            for neighbor in unreached_neighbors:
+                neighbor_cell = neighbor[0]
+                location = neighbor[1]
+                predecessor = neighbor[2]
+                
+                # Mark cell as reached
+                neighbor_cell.set_reached(1)
+
+                # Compute new pathcost
+                pathcost = current_cell.get_pathcost() + neighbor_cell.get_cost()
+
+                # Mark predecessor direction
+                neighbor_cell.set_pred(predecessor)
+
+                # Add neighbor to wavefront
+                next_layer = location[0]
+                next_y = location[1]
+                next_x = location[2]
+
+                next_cell = WaveCell()
+                next_cell.set_x(next_x)
+                next_cell.set_y(next_y)
+                next_cell.set_pathcost(pathcost)
+                next_cell.set_pred(predecessor)
+                next_cell.set_layer(next_layer)
+
+                self.wavefront.push(next_cell)
+
+        return path
 
     def run(self):
         """Complete maze routing for each netlist"""
@@ -273,11 +419,12 @@ class MazeRouter:
 
                 # Output routed path
                 if len(route) != 0:
-                    for cell in route:
-                        file.write(f"{cell.get_layer()} {cell.get_x()} {cell.get_y()}\n")
+                    for cell in route[::-1]:
+                        file.write(f"{cell[0]} {cell[1]} {cell[2]}\n")
 
                 # Output end number
                 file.write("0\n")
+                net_number += 1
 
 if __name__ == "__main__":
     # Input and Output file arguments
