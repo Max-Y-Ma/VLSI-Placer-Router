@@ -50,15 +50,62 @@ class NetCell:
     -------------------------------------------------------------------------
     """
     def __init__(self, coord=0, data=0, instring=None):
-        if instring is not None:
-            """"""
-        else:
-            self.coord = coord
-            self.data = data
+        self.coord = coord
+        self.data = data
 
-        # Getters and Setters
-            
-            
+        # Parse stringified netlist
+        if instring is not None:
+            self.list = instring.split()
+            self.set_id(int(self.list[0]))
+            self.set_layer1(int(self.list[1]))
+            self.set_x1(int(self.list[2]))
+            self.set_y1(int(self.list[3]))
+            self.set_layer2(int(self.list[4]))
+            self.set_x2(int(self.list[5]))
+            self.set_y2(int(self.list[6]))
+
+    # Getters and Setters
+    def get_x1(self):
+        return (self.coord & 0x00000000FFFF0000) >> 16
+
+    def get_x2(self):
+        return (self.coord & 0xFFFF000000000000) >> 48
+    
+    def get_y1(self):
+        return self.coord & 0x000000000000FFFF
+    
+    def get_y2(self):
+        return (self.coord & 0x0000FFFF00000000) >> 32
+    
+    def get_id(self):
+        return (self.data & 0xFC) >> 2
+
+    def get_layer1(self):
+        return (self.data & 0x02) >> 1
+
+    def get_layer2(self):
+        return self.data & 0x01
+
+    def set_x1(self, x):
+        self.coord = ((x << 16) & 0x00000000FFFF0000) | (self.coord & 0xFFFFFFFF0000FFFF)
+
+    def set_x2(self, x):
+        self.coord = ((x << 48) & 0xFFFF000000000000) | (self.coord & 0x0000FFFFFFFFFFFF)
+
+    def set_y1(self, y):
+        self.coord = (y & 0x000000000000FFFF) | (self.coord & 0xFFFFFFFFFFFF0000)
+
+    def set_y2(self, y):
+        self.coord = ((y << 32) & 0x0000FFFF00000000) | (self.coord & 0xFFFF0000FFFFFFFF)
+
+    def set_id(self, id):
+        self.data = ((id << 2) & 0xFC) | (self.data & 0x03)
+
+    def set_layer1(self, layer):
+        self.data = ((layer << 1) & 0x02) | (self.data & 0xFD)
+
+    def set_layer2(self, layer):
+        self.data = (layer & 0x01) | (self.data & 0xFE)
 
 class WaveCell:
     """
