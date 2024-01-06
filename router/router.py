@@ -256,7 +256,7 @@ class MazeRouter:
         # Clear grid
         for y in range(self.grid_y):
             for x in range(self.grid_x):
-                for i in range(4):
+                for i in range(6):
                     self.grid[0][y][x].set_reached(0, i)
                     self.grid[1][y][x].set_reached(0, i)
                 self.grid[0][y][x].set_pred(0)
@@ -283,17 +283,18 @@ class MazeRouter:
 
         # Check bottom neighbor
         if y < self.grid_y - 1:
-            if self.grid[layer][y+1][x].get_reached(PredTag.N.value - 1) == 0:
+            if self.grid[layer][y+1][x].get_reached(PredTag.N.value - 1) == 0 and self.grid[layer][y+1][x].get_cost() != 4095:
                 unreached_neighbors.append([self.grid[layer][y+1][x], (layer, y+1, x), PredTag.N.value])
 
         # Check above neighbor
         if layer == 0:
-            if self.grid[1][y][x].get_reached(PredTag.U.value - 1) == 0 and self.grid[layer][y+1][x].get_cost() != 4095:
-            unreached_neighbors.append((x, y, 1))
+            if self.grid[1][y][x].get_reached(PredTag.D.value - 1) == 0 and self.grid[1][y][x].get_cost() != 4095:
+                unreached_neighbors.append([self.grid[1][y][x], (1, y, x), PredTag.D.value])
 
         # Check below neighbor
-        # if layer == 1 and self.grid[0][y][x].get_reached() == 0:
-        #     unreached_neighbors.append((x, y, 0))
+        if layer == 1:
+            if self.grid[0][y][x].get_reached(PredTag.U.value - 1) == 0 and self.grid[0][y][x].get_cost() != 4095:
+                unreached_neighbors.append([self.grid[0][y][x], (0, y, x), PredTag.U.value])
                 
         return unreached_neighbors
 
@@ -330,10 +331,12 @@ class MazeRouter:
             elif pred == PredTag.W.value:
                 current_cell = self.grid[cell_layer][cell_y][cell_x-1]
                 cell_x -= 1
-            # elif pred == PredTag.U.value:
-            #     current_cell = self.grid[0][current_cell.get_y()][current_cell.get_x()]
-            # elif pred == PredTag.D.value:
-            #     current_cell = self.grid[1][current_cell.get_y()][current_cell.get_x()]
+            elif pred == PredTag.U.value:
+                current_cell = self.grid[1][cell_y][cell_x]
+                cell_layer = 1
+            elif pred == PredTag.D.value:
+                current_cell = self.grid[0][cell_y][cell_x]
+                cell_layer = 0
             else:
                 break
 
@@ -359,7 +362,7 @@ class MazeRouter:
         # Initialize wavefront to source cell
         self.wavefront.clear()
         self.wavefront.push(source)
-        for i in range(4):
+        for i in range(6):
             self.grid[source.get_layer(), source.get_y(), source.get_x()].set_reached(1, i)
 
         # Maze routing algorithm
@@ -378,6 +381,7 @@ class MazeRouter:
             # Check for target
             if (cell_x == target.get_x() and cell_y == target.get_y() and cell_layer == target.get_layer()):
                 # Target reached, backtrace path
+                self.grid[cell_layer, cell_y, cell_x].set_pred(current_cell.get_pred())
                 path = self.backtrace_route(source, cell_x, cell_y, cell_layer)
 
                 # Cleanup
@@ -394,14 +398,16 @@ class MazeRouter:
                 next_layer = location[0]
                 next_y = location[1]
                 next_x = location[2]
-                
+
                 # Mark cell as reached
                 neighbor_cell.set_reached(1, predecessor - 1)
 
-                # Compute new pathcost, factoring in bend penalty
+                # Compute new pathcost, factoring in bend penalty and via cost
                 pathcost = current_cell.get_pathcost() + neighbor_cell.get_cost()
-                if (current_cell.get_pred() != predecessor):
+                if current_cell.get_pred() != predecessor:
                     pathcost += self.bend_penalty
+                if current_cell.get_layer() != next_layer:
+                    pathcost += self.via_penalty
                 
                 # Track minimum pathcost for each cell
                 hash = next_y * self.grid_x + next_x
@@ -446,19 +452,27 @@ class MazeRouter:
             # Output total number of nets
             file.write(f"{self.num_nets}\n")
 
+            # Output each net
             net_number = 1
             for route in self.routes:
                 # Output net number
                 file.write(f"{net_number}\n")
 
                 # Output routed path
+                previous_layer = None
                 if len(route) != 0:
                     for cell in route[::-1]:
+                        # Check for vias
+                        if previous_layer is not None and (cell[0] + 1) != previous_layer:
+                            file.write(f"{3} {cell[1]} {cell[2]}\n")
+
+                        # Output cell
                         file.write(f"{cell[0] + 1} {cell[1]} {cell[2]}\n")  # Convert layer to 1-indexed
+                        previous_layer = cell[0] + 1
 
                 # Output end number
                 file.write("0\n")
-                net_number += 1
+                net_number += 1     # Increment net number
 
 if __name__ == "__main__":
     # Input and Output file arguments
