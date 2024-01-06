@@ -385,15 +385,15 @@ class MazeRouter:
                 # Mark cell as reached
                 neighbor_cell.set_reached(1, predecessor - 1)
 
-                # Compute new pathcost
+                # Compute new pathcost, factoring in bend penalty
                 pathcost = current_cell.get_pathcost() + neighbor_cell.get_cost()
+                if (current_cell.get_pred() != predecessor):
+                    pathcost += self.bend_penalty
+                
                 hash = next_y * self.grid_x + next_x
                 if (hash not in self.min_cost):
                     self.min_cost[hash] = pathcost
 
-                # Factor in bend penalty
-                # if (current_cell.get_pred() != predecessor):
-                #     pathcost += self.bend_penalty
 
                 # Mark predecessor direction if minimum pathcost
                 if (pathcost <= self.min_cost[hash]):
