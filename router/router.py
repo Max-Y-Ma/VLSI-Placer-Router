@@ -265,35 +265,35 @@ class MazeRouter:
     def get_cell_neighbors(self, x, y, layer):
         """Get unreached neighbors of cell"""
         unreached_neighbors = []
-        
+
         # Check left neighbor
         if x > 0:
-            if self.grid[layer][y][x-1].get_reached(PredTag.E.value - 1) == 0 and self.grid[layer][y][x-1].get_cost() != 4095:
+            if self.grid[layer][y][x-1].get_reached(PredTag.E.value - 1) == 0 and self.grid[layer][y][x-1].get_cost() != 127:
                 unreached_neighbors.append([self.grid[layer][y][x-1], (layer, y, x-1), PredTag.E.value])
         
         # Check right neighbor
         if x < self.grid_x - 1:
-            if self.grid[layer][y][x+1].get_reached(PredTag.W.value - 1) == 0 and self.grid[layer][y][x+1].get_cost() != 4095:
+            if self.grid[layer][y][x+1].get_reached(PredTag.W.value - 1) == 0 and self.grid[layer][y][x+1].get_cost() != 127:
                 unreached_neighbors.append([self.grid[layer][y][x+1], (layer, y, x+1), PredTag.W.value])
 
         # Check top neighbor
         if y > 0:
-            if self.grid[layer][y-1][x].get_reached(PredTag.S.value - 1) == 0 and self.grid[layer][y-1][x].get_cost() != 4095:
+            if self.grid[layer][y-1][x].get_reached(PredTag.S.value - 1) == 0 and self.grid[layer][y-1][x].get_cost() != 127:
                 unreached_neighbors.append([self.grid[layer][y-1][x], (layer, y-1, x), PredTag.S.value])
 
         # Check bottom neighbor
         if y < self.grid_y - 1:
-            if self.grid[layer][y+1][x].get_reached(PredTag.N.value - 1) == 0 and self.grid[layer][y+1][x].get_cost() != 4095:
+            if self.grid[layer][y+1][x].get_reached(PredTag.N.value - 1) == 0 and self.grid[layer][y+1][x].get_cost() != 127:
                 unreached_neighbors.append([self.grid[layer][y+1][x], (layer, y+1, x), PredTag.N.value])
 
         # Check above neighbor
         if layer == 0:
-            if self.grid[1][y][x].get_reached(PredTag.D.value - 1) == 0 and self.grid[1][y][x].get_cost() != 4095:
+            if self.grid[1][y][x].get_reached(PredTag.D.value - 1) == 0 and self.grid[1][y][x].get_cost() != 127:
                 unreached_neighbors.append([self.grid[1][y][x], (1, y, x), PredTag.D.value])
 
         # Check below neighbor
         if layer == 1:
-            if self.grid[0][y][x].get_reached(PredTag.U.value - 1) == 0 and self.grid[0][y][x].get_cost() != 4095:
+            if self.grid[0][y][x].get_reached(PredTag.U.value - 1) == 0 and self.grid[0][y][x].get_cost() != 127:
                 unreached_neighbors.append([self.grid[0][y][x], (0, y, x), PredTag.U.value])
                 
         return unreached_neighbors
@@ -410,7 +410,7 @@ class MazeRouter:
                     pathcost += self.via_penalty
                 
                 # Track minimum pathcost for each cell
-                hash = next_y * self.grid_x + next_x
+                hash = next_layer * self.grid_x * self.grid_y + next_y * self.grid_x + next_x
                 if (hash not in self.min_cost):
                     self.min_cost[hash] = pathcost
 
