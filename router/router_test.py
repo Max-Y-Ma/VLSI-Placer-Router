@@ -35,7 +35,7 @@ class RouterTestModule(unittest.TestCase):
 
         for i in range(num_basic_test):
             wc_data = [random.randint(0, 2**16 - 1), random.randint(0, 2**16 - 1), 
-                             random.randint(0, 2**28 - 1), random.randint(1, 6), random.randint(0, 1)]
+                       random.randint(0, 2**28 - 1), random.randint(1, 6), random.randint(0, 1)]
             wavecell.set_x(wc_data[0])
             wavecell.set_y(wc_data[1])
             wavecell.set_pathcost(wc_data[2])
@@ -60,7 +60,7 @@ class RouterTestModule(unittest.TestCase):
 
         for i in range(num_basic_test):
             nc_coord = [random.randint(0, 2**16 - 1), random.randint(0, 2**16 - 1), 
-                                  random.randint(0, 2**16 - 1), random.randint(0, 2**16 - 1)]
+                        random.randint(0, 2**16 - 1), random.randint(0, 2**16 - 1)]
             nc_data = [random.randint(0, 2**6 - 1), random.randint(0, 1), random.randint(0, 1)]
 
             netcell.set_x2(nc_coord[0])

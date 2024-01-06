@@ -14,6 +14,7 @@ Source Code for simple VLSI Quadratic Placer and Router.
 
 ## Usage
 - Benchmarks for this module are run using a bash script `./run_placer.sh`
+- Generated output files can be viewed using `https://spark-public.s3.amazonaws.com/vlsicad/javascript_tools/visualize.html` 
 
 # VLSI Router
 - This python module `MazeRouter` implements a router that supports the following:
@@ -24,3 +25,6 @@ Source Code for simple VLSI Quadratic Placer and Router.
 
 ## Usage
 - Benchmarks for this module are run using a bash script `./run_router.sh`
+- Generated output files can be viewed using `https://spark-public.s3.amazonaws.com/vlsicad/javascript_tools/router.html` 
+
+![Simple Router w/ Bend Penalty](images/simple_route.png)

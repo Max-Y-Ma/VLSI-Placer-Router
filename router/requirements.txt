@@ -1,6 +1,6 @@
 enum
+time
 heapq
 numpy
-random
 argparse
 unittest

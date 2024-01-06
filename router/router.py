@@ -1,3 +1,4 @@
+import time
 import heapq
 import argparse
 import numpy as np
@@ -414,10 +415,18 @@ class MazeRouter:
 
     def run(self):
         """Complete maze routing for each netlist"""
+        # Record the start time
+        start_time = time.time()
+
         # Route each net in netlist
         for net in self.nets:
             maze_route = self.route(net)
             self.routes.append(maze_route)
+        
+        # Calculate the runtime
+        end_time = time.time()
+        runtime = end_time - start_time
+        print(f"Complete after {runtime} seconds")
 
     def output(self, outfile):
         """Output final maze routing"""
