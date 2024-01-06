@@ -239,6 +239,10 @@ class MazeRouter:
         # Netlist data structure variables
         self.num_nets = 0
         self.nets = np.array([])
+
+        # Sources and target data structure variables
+        self.sources = []
+        self.targets = []
         
         # Wavefront (heap/priority queue) data structure variables
         self.wavefront = WaveFront()
@@ -358,6 +362,17 @@ class MazeRouter:
         target.set_x(net.get_x2())
         target.set_y(net.get_y2())
         target.set_layer(net.get_layer2())
+
+        # Append source and target cells
+        self.sources.append(source)
+        self.targets.append(target)
+
+        # Unblock source and target cells
+        for source in self.sources:
+            self.grid[source.get_layer(), source.get_y(), source.get_x()].set_cost(1)
+
+        for target in self.targets:
+            self.grid[target.get_layer(), target.get_y(), target.get_x()].set_cost(1)
         
         # Initialize wavefront to source cell
         self.wavefront.clear()

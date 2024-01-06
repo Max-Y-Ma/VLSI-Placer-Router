@@ -28,3 +28,4 @@ Source Code for simple VLSI Quadratic Placer and Router.
 - Generated output files can be viewed using `https://spark-public.s3.amazonaws.com/vlsicad/javascript_tools/router.html` 
 
 ![Simple Router w/ Bend Penalty](images/simple_route.png)
+![Complex Router w/ Vias](images/complex_route_vias.png)

@@ -4,9 +4,7 @@
 dir_path="router"
 benchmarks_path="$dir_path/benchmarks"
 output_path="$dir_path/out"
-benchmarks=("bench4")
-# benchmarks=("bench1" "bench2" "bench3" "bench4" "bench5")
-extra_benchmarks=("fract2" "industry1" "primary1")
+benchmarks=("bench1" "bench2" "bench3" "bench4" "bench5")
 
 # Run router unit tests
 python3 "$dir_path/router_test.py"
