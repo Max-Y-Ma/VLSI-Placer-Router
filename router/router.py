@@ -222,6 +222,7 @@ class MazeRouter:
             # Initialize netlist
             self.nets = np.array([NetCell() for _ in range(self.num_nets)])
 
+            # Initialize each net
             for i in range(self.num_nets):
                 self.nets[i] = NetCell(instring=file.readline())
 
@@ -235,6 +236,7 @@ class MazeRouter:
         self.grid = np.array([[[]]])
         self.routes = []
 
+        # Netlist data structure variables
         self.num_nets = 0
         self.nets = np.array([])
         
@@ -248,7 +250,10 @@ class MazeRouter:
 
     def cleanup(self):
         """Cleanup grid after routing a net"""
+        # Clear minimum path dictionary
         self.min_cost = {}
+
+        # Clear grid
         for y in range(self.grid_y):
             for x in range(self.grid_x):
                 for i in range(4):
@@ -262,20 +267,24 @@ class MazeRouter:
         unreached_neighbors = []
         
         # Check left neighbor
-        if x > 0 and self.grid[layer][y][x-1].get_reached(PredTag.E.value - 1) == 0 and self.grid[layer][y][x-1].get_cost() != 4095:
-            unreached_neighbors.append([self.grid[layer][y][x-1], (layer, y, x-1), PredTag.E.value])
+        if x > 0:
+            if self.grid[layer][y][x-1].get_reached(PredTag.E.value - 1) == 0 and self.grid[layer][y][x-1].get_cost() != 4095:
+                unreached_neighbors.append([self.grid[layer][y][x-1], (layer, y, x-1), PredTag.E.value])
         
         # Check right neighbor
-        if x < self.grid_x - 1 and self.grid[layer][y][x+1].get_reached(PredTag.W.value - 1) == 0 and self.grid[layer][y][x+1].get_cost() != 4095:
-            unreached_neighbors.append([self.grid[layer][y][x+1], (layer, y, x+1), PredTag.W.value])
+        if x < self.grid_x - 1:
+            if self.grid[layer][y][x+1].get_reached(PredTag.W.value - 1) == 0 and self.grid[layer][y][x+1].get_cost() != 4095:
+                unreached_neighbors.append([self.grid[layer][y][x+1], (layer, y, x+1), PredTag.W.value])
 
         # Check top neighbor
-        if y > 0 and self.grid[layer][y-1][x].get_reached(PredTag.S.value - 1) == 0 and self.grid[layer][y-1][x].get_cost() != 4095:
-            unreached_neighbors.append([self.grid[layer][y-1][x], (layer, y-1, x), PredTag.S.value])
+        if y > 0:
+            if self.grid[layer][y-1][x].get_reached(PredTag.S.value - 1) == 0 and self.grid[layer][y-1][x].get_cost() != 4095:
+                unreached_neighbors.append([self.grid[layer][y-1][x], (layer, y-1, x), PredTag.S.value])
 
         # Check bottom neighbor
-        if y < self.grid_y - 1 and self.grid[layer][y+1][x].get_reached(PredTag.N.value - 1) == 0 and self.grid[layer][y+1][x].get_cost() != 4095:
-            unreached_neighbors.append([self.grid[layer][y+1][x], (layer, y+1, x), PredTag.N.value])
+        if y < self.grid_y - 1:
+            if self.grid[layer][y+1][x].get_reached(PredTag.N.value - 1) == 0 and self.grid[layer][y+1][x].get_cost() != 4095:
+                unreached_neighbors.append([self.grid[layer][y+1][x], (layer, y+1, x), PredTag.N.value])
 
         # # Check above neighbor
         # if layer == 0 and self.grid[1][y][x].get_reached() == 0:
@@ -284,6 +293,7 @@ class MazeRouter:
         # # Check below neighbor
         # if layer == 1 and self.grid[0][y][x].get_reached() == 0:
         #     unreached_neighbors.append((x, y, 0))
+                
         return unreached_neighbors
 
     def backtrace_route(self, source, cell_x, cell_y, cell_layer):
@@ -295,7 +305,7 @@ class MazeRouter:
 
         path = []
         while(True):
-            # Add cell to path
+            # Add cell to path, and make obstacle
             self.grid[cell_layer][cell_y][cell_x].set_cost(-1)
             path.append((cell_layer, cell_x, cell_y))
 
@@ -371,6 +381,7 @@ class MazeRouter:
 
                 # Cleanup
                 self.cleanup()
+
                 break
 
             # Complete expansion, checking neighbor cells
@@ -391,10 +402,10 @@ class MazeRouter:
                 if (current_cell.get_pred() != predecessor):
                     pathcost += self.bend_penalty
                 
+                # Track minimum pathcost for each cell
                 hash = next_y * self.grid_x + next_x
                 if (hash not in self.min_cost):
                     self.min_cost[hash] = pathcost
-
 
                 # Mark predecessor direction if minimum pathcost
                 if (pathcost <= self.min_cost[hash]):
