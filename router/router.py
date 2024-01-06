@@ -33,7 +33,7 @@ class GridCell:
     """
     Single Cell in Routing Grid (16-bit):
     ----------------------------------------------------
-    Cost (9-bit) | Predecessor (3-bit) | Reached (4-bit)
+    Cost (7-bit) | Predecessor (3-bit) | Reached (6-bit)
     ----------------------------------------------------
     """
     def __init__(self, data=0):
@@ -41,19 +41,19 @@ class GridCell:
     
     # Getters and Setters
     def get_cost(self):
-        return (self.data & 0xFF80) >> 7
+        return (self.data & 0xFE00) >> 9
     
     def get_pred(self):
-        return (self.data & 0x0070) >> 4
+        return (self.data & 0x01C0) >> 6
 
     def get_reached(self, direction):
-        return ((self.data & 0x000F) >> direction) & 0x0001
+        return ((self.data & 0x003F) >> direction) & 0x0001
 
     def set_cost(self, cost):
-        self.data = ((cost << 7) & 0xFF80) | (self.data & 0x007F)
+        self.data = ((cost << 9) & 0xFE00) | (self.data & 0x01FF)
 
     def set_pred(self, pred):
-        self.data = ((pred << 4) & 0x0070) | (self.data & 0xFF8F)
+        self.data = ((pred << 6) & 0x01C0) | (self.data & 0xFE3F)
 
     def set_reached(self, reached, direction):
         self.data = (reached << direction) | (self.data & ~(0x0001 << direction))
@@ -283,14 +283,15 @@ class MazeRouter:
 
         # Check bottom neighbor
         if y < self.grid_y - 1:
-            if self.grid[layer][y+1][x].get_reached(PredTag.N.value - 1) == 0 and self.grid[layer][y+1][x].get_cost() != 4095:
+            if self.grid[layer][y+1][x].get_reached(PredTag.N.value - 1) == 0:
                 unreached_neighbors.append([self.grid[layer][y+1][x], (layer, y+1, x), PredTag.N.value])
 
-        # # Check above neighbor
-        # if layer == 0 and self.grid[1][y][x].get_reached() == 0:
-        #     unreached_neighbors.append((x, y, 1))
+        # Check above neighbor
+        if layer == 0:
+            if self.grid[1][y][x].get_reached(PredTag.U.value - 1) == 0 and self.grid[layer][y+1][x].get_cost() != 4095:
+            unreached_neighbors.append((x, y, 1))
 
-        # # Check below neighbor
+        # Check below neighbor
         # if layer == 1 and self.grid[0][y][x].get_reached() == 0:
         #     unreached_neighbors.append((x, y, 0))
                 
